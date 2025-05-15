@@ -1,0 +1,54 @@
+1. Load 1000 images from dataset posed 
+2. Load 1000 images from dataset genuine
+    2.1 Convert to grayscale PNG 224 * 224 images 
+3. Use OpenFace to extract AUs into CSV files 
+4. Create the dataset with (path to CSV / Label)
+5. Create the Model that given the AUs return the right label
+* Problem:
+    - when someone load an image I need first to extract the AUs 
+    - Sol1 --> find a way to do it interacting with OpenFace in the code and process the image 
+        before to get the model prediction (call subprocess from python)
+
+* Use Action Unit [AUs]
+- OpenFace
+- Random Forest or MLP
+- Citare studi su AUs
+- Citare il fatto che esistono dataset migliori ma privati
+
+* ToDo:
+    - Go more depth with theory about landmarks and AUs
+
+# Report
+1. Introduction: Provide a concise
+explanation of the topic that you have chosen, and what has been done
+already on such topic (maybe by putting some references).
+2. Method:
+Here you will explain what you have done. I do not need the code since
+you will provide it together with the report. You just need to explain
+the several steps/the model that you have implemented, together with the
+used dataset.
+3. Results: Here you will show the results that you got, and the problems you encountered.
+###############################################
+1 - Introduction: 
+    Topic choosen [emotion classification, expression genuinity binary classification, face detection]
+2 - The project is splitted into three parts 
+    - emotion classification
+        -> download the dataset from Kaggle
+        -> create the model
+        -> train the model 
+        -> test the model
+    - expression genuinity binary classification
+        -> download the dataset from Kaggle
+        -> extract the AUs using OpenFace
+        -> create the dataset 
+        -> create the model 
+        -> train the model
+        -> test the model
+    - face detection
+        -> extract frame from the webcame 
+        -> detect the face if present
+        -> pass the image to the model for emotion classification 
+        -> extract the AUs from the image and pass it to the model for genuinity classification
+        -> get both the predection result and print on the screen
+
+* paper about AUs: https://arxiv.org/pdf/2008.11353

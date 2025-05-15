@@ -23,6 +23,12 @@ Built with the power of **computer vision** and **machine learning**, this tool 
 
 - ongoing ...
 
+### 📂 Dataset Access
+
+You can access the original datasets used in this project via the following link:
+
+👉 [Download Dataset from Google Drive](https://drive.google.com/drive/u/0/folders/1w5s0F2jjYb_B5ut2sYBO2ZqEqnOz0aLu)
+
 ### 📈 Goals
 
 - Train an emotion classification model
