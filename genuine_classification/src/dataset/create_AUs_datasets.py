@@ -49,7 +49,7 @@ def create_dataset(filename, path, header, class_name):
 
 def shuffle_dataset(src, dst):
     # Load, shuffle and save it
-    df = pd.read_csv("src", delimiter=';')
+    df = pd.read_csv(src, delimiter=';')
     df_shuffled = df.sample(frac=1, random_state=42).reset_index(drop=True)
     df_shuffled.to_csv(dst, index=False, sep=';')
 

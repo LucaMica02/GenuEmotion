@@ -4,10 +4,14 @@
 3. Use OpenFace to extract AUs into CSV files 
 4. Create the dataset with (path to CSV / Label)
 5. Create the Model that given the AUs return the right label
-* Problem:
-    - when someone load an image I need first to extract the AUs 
-    - Sol1 --> find a way to do it interacting with OpenFace in the code and process the image 
-        before to get the model prediction (call subprocess from python)
+    5.1 simple sklearn model that take the AUs 
+    5.2 pytorch model that take AUs
+    5.3 pytorch model that take the landmarks
+    5.4 pytorch model that take the images
+    5.5 pytorch model that take all of them
+6. Train and test the model
+7. Create the UI where can start a video and extract [frame, landmarks, AUs], 
+    call the models and show the classification
 
 * Use Action Unit [AUs]
 - OpenFace
@@ -15,8 +19,13 @@
 - Citare studi su AUs
 - Citare il fatto che esistono dataset migliori ma privati
 
-* ToDo:
-    - Go more depth with theory about landmarks and AUs
+To-Do:
+    - Combine all the models [26]
+    - Train and fine tune the models [26]
+    - Test with UI [29]
+    - Merge the code and test it [29]
+    - Report [1 - 4]
+    - Presentation [4 - 11]
 
 # Report
 1. Introduction: Provide a concise
