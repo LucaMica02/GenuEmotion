@@ -22,7 +22,6 @@ def append_rows(rows, filename):
 def get_landmarks(img_path, size=(224, 224)):
     img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
     resized_img = cv2.resize(img, size)
-    height, width = resized_img.shape
     rgb_img = cv2.cvtColor(resized_img, cv2.COLOR_GRAY2RGB)
 
     # Store all the landmarks in the format x, y
@@ -31,8 +30,8 @@ def get_landmarks(img_path, size=(224, 224)):
     if results.multi_face_landmarks:
         for facial_landmarks in results.multi_face_landmarks:
             for pt in facial_landmarks.landmark:
-                x = int(pt.x * width)
-                y = int(pt.y * height)
+                x = pt.x
+                y = pt.y
                 landmarks.append(x)
                 landmarks.append(y)
     return landmarks
@@ -56,18 +55,23 @@ def shuffle_dataset(src, dst):
     df_shuffled = df.sample(frac=1, random_state=42).reset_index(drop=True)
     df_shuffled.to_csv(dst, index=False, sep=';')
 
+def create_dataset():
+    posed_path = "C:/Users/lucam/Drive/Desktop/dataset/posed"
+    gen_path = "C:/Users/lucam/Drive/Desktop/dataset/genuine"
+    dataset_path = "C:/Users/lucam/Drive/Desktop/GenuEmotion/genuine_classification/dataset/landmarks_dataset.csv"
+    dataset_path_shuffled = "C:/Users/lucam/Drive/Desktop/GenuEmotion/genuine_classification/dataset/landmarks_dataset_shuffled.csv"
+    HEADER = []
+    for i in range(468):
+        HEADER.append(f"x_{i}")
+        HEADER.append(f"y_{i}")
+    HEADER.append("class")
+    create_file(dataset_path, HEADER)
+    create(posed_path, 0, dataset_path)
+    create(gen_path, 1, dataset_path)
+    shuffle_dataset(dataset_path, dataset_path_shuffled)
+
 mp_face_mesh = mp.solutions.face_mesh
 face_mesh = mp_face_mesh.FaceMesh()
-posed_path = "C:/Users/lucam/Drive/Desktop/dataset/posed"
-gen_path = "C:/Users/lucam/Drive/Desktop/dataset/genuine"
-dataset_path = "C:/Users/lucam/Drive/Desktop/GenuEmotion/genuine_classification/dataset/landmarks_dataset.csv"
-dataset_path_shuffled = "C:/Users/lucam/Drive/Desktop/GenuEmotion/genuine_classification/dataset/landmarks_dataset_shuffled.csv"
-HEADER = []
-for i in range(468):
-    HEADER.append(f"x_{i}")
-    HEADER.append(f"y_{i}")
-HEADER.append("class")
-create_file(dataset_path, HEADER)
-create(posed_path, 0, dataset_path)
-create(gen_path, 1, dataset_path)
-shuffle_dataset(dataset_path, dataset_path_shuffled)
+
+if __name__ == "__main__":
+    create_dataset()
