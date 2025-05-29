@@ -1,5 +1,8 @@
 __pycache__/
 dataset/
 docs/
+plots/
+data/
+checkpoints/
 *.txt
 *.pth

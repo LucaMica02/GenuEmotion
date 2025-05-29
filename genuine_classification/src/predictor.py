@@ -1,5 +1,5 @@
 import torch
-from model import MLPClassifier
+from .model import MLPClassifier
 
 # Function to perform prediction using a trained model
 def predict(model, best_model_path, input):
