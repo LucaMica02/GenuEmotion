@@ -20,9 +20,9 @@
 - Citare il fatto che esistono dataset migliori ma privati
 
 To-Do:
-    - Combine all the models [26]
-    - Train and fine tune the models [26]
-    - Test with UI [29]
+    - Review + Training modello con immagini 
+    - Dai la possibilità di usare modello2 se non hai OpenFace
+    - Testa codice emotion classification
     - Merge the code and test it [29]
     - Report [1 - 4]
     - Presentation [4 - 11]
