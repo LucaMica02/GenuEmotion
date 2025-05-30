@@ -18,10 +18,34 @@ Built with the power of **computer vision** and **machine learning**, this tool 
 - Python
 - OpenCV
 - PyTorch
+- OpenFace
 
 ### 📁 Structure
 
-- ongoing ...
+- **`emotion_recognition/`**  
+  Contains all the code related to the emotion recognition task:
+
+  - Model architecture
+  - Dataset loading and preprocessing
+  - Training and evaluation scripts
+
+- **`genuineness_detection/`**  
+  Contains the code for the genuineness (authenticity) detection task:
+
+  - Neural network model
+  - Micro-expression dataset integration
+  - Training and evaluation pipeline
+
+- **`main.py`**  
+  The main entry point of the project.  
+  Use this script to:
+  - Run real-time inference using your webcam
+  - Load and test the pretrained models for emotion recognition and genuineness detection
+
+> 💡 Make sure your **webcam** is connected and all **dependencies** are installed before running `main.py`.  
+> 💡 Remember to **train the models** before running `main.py`.  
+> 💡 If you want to get predictions based on **Action Units (AUs)**, you need to install and use the **OpenFace** tool.  
+> 💡 Don't forget to **update the file paths (PATHS)** in the code according to your local environment.
 
 ### 📂 Dataset Access
 

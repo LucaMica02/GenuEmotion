@@ -21,12 +21,12 @@ def predict(model, best_model_path, input):
 
 # Function to perform prediction based on the AUs
 def predict_au(input):
-    best_model_path = "C:/Users/lucam/Drive/Desktop/GenuEmotion/genuine_classification/au_classifier_best.pth"
+    best_model_path = "C:/Users/lucam/Drive/Desktop/GenuEmotion/genuineness_detection/au_classifier_best.pth"
     model = MLPClassifier(input_dim=len(input))
     return predict(model, best_model_path, input)
 
 # Function to perform prediction based on the landmarks
 def predict_landmark(input):
-    best_model_path = "C:/Users/lucam/Drive/Desktop/GenuEmotion/genuine_classification/land_classifier_best.pth"
+    best_model_path = "C:/Users/lucam/Drive/Desktop/GenuEmotion/genuineness_detection/land_classifier_best.pth"
     model = MLPClassifier(input_dim=len(input))
     return predict(model, best_model_path, input)

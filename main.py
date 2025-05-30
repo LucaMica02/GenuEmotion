@@ -13,8 +13,8 @@ import pandas as pd
 import os
 import subprocess
 from moviepy import ImageClip
-from genuine_classification.src.predictor import predict_au, predict_landmark
-from genuine_classification.dataset_src.create_landmarks_dataset import get_landmarks
+from genuineness_detection.src.predictor import predict_au, predict_landmark
+from genuineness_detection.dataset_src.create_landmarks_dataset import get_landmarks
 
 # Importa il modello personalizzato e le utility
 from emotion_recognition.model import EmotionCNN
