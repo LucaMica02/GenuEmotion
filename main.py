@@ -1,31 +1,31 @@
-# inference.py
-# Questo modulo permette di utilizzare il modello addestrato per il riconoscimento delle emozioni
-# in tempo reale tramite webcam, utilizzando OpenCV per la cattura video e il rilevamento dei volti.
+# main.py
+# This module allows the trained model to be used for real-time emotion recognition
+# via webcam, using OpenCV for video capture and face detection.
 
-'''COMANDO PER ESEGUIRE IL CODICE DA TERMINALE: python inference.py'''
+'''COMMAND TO RUN THE CODE FROM TERMINAL: python main.py''' # Corrected file name
 
-import cv2 # Libreria OpenCV per la visione artificiale
+import cv2 # OpenCV library for computer vision
 import torch
 import torch.nn.functional as F
-from torchvision import transforms # Per le trasformazioni delle immagini
-import numpy as np # Per operazioni numeriche
+from torchvision import transforms # For image transformations
+import numpy as np # For numerical operations
 import pandas as pd
 import os
 import subprocess
-from moviepy import ImageClip
+from moviepy.editor import ImageClip # Correct import for ImageClip
 from genuineness_detection.src.predictor import predict_au, predict_landmark
 from genuineness_detection.dataset_src.create_landmarks_dataset import get_landmarks
 
-# Importa il modello personalizzato e le utility
+# Import the custom model and utilities
 from emotion_recognition.model import EmotionCNN
 from emotion_recognition.utils import load_checkpoint
 
-# Definizione dei percorsi
-CHECKPOINT_PATH = 'checkpoints/best_model.pth' # Percorso del modello addestrato
-# Percorso del classificatore Haar Cascade per il rilevamento dei volti
+# Define paths
+CHECKPOINT_PATH = 'checkpoints/best_model.pth' # Path to the trained model
+# Path to the Haar Cascade classifier for face detection
 FACE_CASCADE_PATH = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
 
-# Mappa le etichette numeriche delle emozioni ai nomi standard delle emozioni
+# Map numerical emotion labels to standard emotion names
 EMOTION_LABELS = {
     0: 'Angry',
     1: 'Disgust',
@@ -38,25 +38,31 @@ EMOTION_LABELS = {
 
 def preprocess_face(face_image):
     """
-    Pre-elabora l'immagine del volto per renderla compatibile con l'input del modello.
+    Pre-processes the face image to make it compatible with the model's input.
 
     Args:
-        face_image (numpy.ndarray): Immagine del volto (array NumPy).
+        face_image (numpy.ndarray): Face image (NumPy array).
 
     Returns:
-        torch.Tensor: Tensore dell'immagine pre-elaborata.
+        torch.Tensor: Pre-processed image tensor.
     """
-    # Trasformazioni da applicare all'immagine del volto rilevato
+    # Transformations to apply to the detected face image
     transform = transforms.Compose([
-        transforms.ToPILImage(), # Converte l'array NumPy in immagine PIL
-        transforms.Resize((48, 48)), # Ridimensiona a 48x48 pixel
-        transforms.ToTensor(), # Converte in tensore (scala a [0, 1])
-        transforms.Normalize(mean=[0.5], std=[0.5]) # Normalizza a [-1, 1]
+        transforms.ToPILImage(), # Converts the NumPy array to a PIL image
+        transforms.Resize((48, 48)), # Resizes to 48x48 pixels
+        transforms.ToTensor(), # Converts to a tensor (scales to [0, 1])
+        transforms.Normalize(mean=[0.5], std=[0.5]) # Normalizes to [-1, 1]
     ])
-    return transform(face_image).unsqueeze(0) # Aggiunge una dimensione per il batch (batch_size=1)
+    return transform(face_image).unsqueeze(0) # Adds a dimension for the batch (batch_size=1)
 
 # Delete the files created to extract the Action Units
 def clean_up(src_path):
+    """
+    Deletes temporary files created during Action Unit extraction.
+
+    Args:
+        src_path (str): Original path of the image used for processing.
+    """
     src_path_org = src_path.split('.')[0]
     files_to_delete = [
         src_path,
@@ -73,14 +79,25 @@ def clean_up(src_path):
             print(f"File not found: {file_path}")
 
 def run_OpenFace(src_path, exe_path, output_dir):
+    """
+    Runs OpenFace to extract Action Units from a video.
+
+    Args:
+        src_path (str): Path to the input video file.
+        exe_path (str): Path to the OpenFace FeatureExtraction.exe executable.
+        output_dir (str): Directory to save OpenFace output files.
+
+    Returns:
+        list: A list of Action Unit intensities if successful, otherwise an empty list.
+    """
     # Construct the command
     command = [
         exe_path,
         "-f", src_path,
-        "-aus",
-        "-out_image",
-        "-verbose",
-        "-out_dir", output_dir
+        "-aus", # Enable Action Unit extraction
+        "-out_image", # Output images with detected facial landmarks
+        "-verbose", # Display verbose output
+        "-out_dir", output_dir # Specify output directory
     ]
 
     # Run the command
@@ -88,31 +105,56 @@ def run_OpenFace(src_path, exe_path, output_dir):
         result = subprocess.run(command, check=True, capture_output=True, text=True)
         print("Success:")
         print(result.stdout)
-        file_path = os.path.join(output_dir, "face.csv")
+        file_path = os.path.join(output_dir, os.path.basename(src_path).split('.')[0] + ".csv") # Construct the expected CSV filename
         if os.path.exists(file_path):
             df = pd.read_csv(file_path)
-            row = df.iloc[0].tolist()
-            return row[5:22] # Take only the Action Units intensity
+            # Ensure there's at least one row and enough columns for AUs
+            if not df.empty and len(df.columns) > 21:
+                row = df.iloc[0].tolist()
+                return row[5:22] # Take only the Action Units intensity (columns 5 to 21)
+            else:
+                print(f"CSV file found but no data or insufficient columns for AUs: {file_path}")
+                return []
         else:
+            print(f"OpenFace output CSV file not found: {file_path}")
             return []
     except subprocess.CalledProcessError as e:
-        print("Error occurred:")
+        print("Error occurred during OpenFace execution:")
         print(e.stderr)
+        return []
 
 # Convert a png to mp4 (needed to apply OpenFace -aus)
 def png_to_mp4(img_path):
+    """
+    Converts a PNG image to an MP4 video, which is required for OpenFace processing.
+
+    Args:
+        img_path (str): Path to the input PNG image.
+
+    Returns:
+        str: Path to the generated MP4 video file.
+    """
     out_path = img_path.split('.')[0] + ".mp4"
-    clip = ImageClip(img_path, duration=1)  # 1 seconds video
-    clip.write_videofile(out_path, fps=24)
+    clip = ImageClip(img_path, duration=1)  # Create a 1-second video clip from the image
+    clip.write_videofile(out_path, fps=24, logger=None) # Write the video file with 24 FPS, suppress verbose output
     print(f"Converted {img_path} to mp4")
     return out_path
 
 # Return the landmarks prediction in text format
 def get_landmarks_text(img_path):
+    """
+    Extracts facial landmarks from an image and returns the prediction in text format.
+
+    Args:
+        img_path (str): Path to the input image.
+
+    Returns:
+        str: Text describing the landmark prediction and confidence.
+    """
     text_land = "Landmarks: "
-    landmarks = get_landmarks(img_path)
-    if len(landmarks) == 936:
-        prediction_land, confidence_land = predict_landmark(landmarks)
+    landmarks = get_landmarks(img_path) # Get landmarks using a custom function
+    if landmarks is not None and len(landmarks) == 936: # Check if landmarks are extracted and have the expected length
+        prediction_land, confidence_land = predict_landmark(landmarks) # Predict based on landmarks
         text_land += f"{prediction_land} - {confidence_land:.2f}%"
     else:
         text_land += "No landmarks extracted from the frame"
@@ -120,127 +162,145 @@ def get_landmarks_text(img_path):
 
 # Return the aus prediction in text format
 def get_aus_text(img_path, exe_path, output_dir):
+    """
+    Extracts Action Units from an image (by converting it to MP4) and returns the prediction in text format.
+
+    Args:
+        img_path (str): Path to the input image.
+        exe_path (str): Path to the OpenFace FeatureExtraction.exe executable.
+        output_dir (str): Directory to save OpenFace output files.
+
+    Returns:
+        str: Text describing the Action Unit prediction and confidence.
+    """
     text_au = "AUs: "
-    out_path = png_to_mp4(img_path)
-    row = run_OpenFace(out_path, exe_path, output_dir)
+    out_path = png_to_mp4(img_path) # Convert the PNG image to MP4 for OpenFace processing
+    row = run_OpenFace(out_path, exe_path, output_dir) # Run OpenFace to get Action Units
     if row:
-        if row == [0.0] * 17:
+        if row == [0.0] * 17: # Check if all AUs are zero (no AUs detected)
             text_au += "No AUs detected"
         else:
-            prediction_au, confidence_au = predict_au(row)
+            prediction_au, confidence_au = predict_au(row) # Predict based on Action Units
             text_au += f"{prediction_au} - {confidence_au:.2f}%"
     else:
         text_au += "No data extracted from the frame."
     return text_au
 
 def main():
-    img_path = r"C:\Users\lucam\Drive\Desktop\GenuEmotion\face.png"
-    exe_path = r"C:\Users\lucam\Drive\Desktop\OpenFace_2.2.0_win_x64\FeatureExtraction.exe"
-    output_dir = r"C:\Users\lucam\Drive\Desktop\GenuEmotion"
+    """
+    Main function to run the real-time emotion recognition and genuineness detection.
+    Initializes the model, webcam, and performs inference on detected faces.
+    Allows saving frames to analyze Action Units or landmarks.
+    """
+    # Define paths for temporary files and OpenFace executable
+    img_path = r"C:\Users\lucam\Drive\Desktop\GenuEmotion\face.png" # Path to save captured frames
+    exe_path = r"C:\Users\lucam\Drive\Desktop\OpenFace_2.2.0_win_x64\FeatureExtraction.exe" # OpenFace executable path
+    output_dir = r"C:\Users\lucam\Drive\Desktop\GenuEmotion" # Directory for OpenFace output
 
-    # 1. Configurazione del dispositivo
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Utilizzo del dispositivo: {device}")
+    # 1. Device Configuration
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu") # Use CUDA if available, otherwise CPU
+    print(f"Using device: {device}")
 
-    # 2. Caricamento del modello addestrato
-    # Inizializza il modello con il numero corretto di classi
+    # 2. Load the trained model
+    # Initialize the model with the correct number of emotion classes
     model = EmotionCNN(num_classes=len(EMOTION_LABELS)).to(device)
-    # Carica lo stato del modello dal checkpoint
+    # Load the model state from the checkpoint
     if os.path.exists(CHECKPOINT_PATH):
-        # load_checkpoint restituisce più valori, ma qui ci interessa solo il modello
+        # load_checkpoint returns multiple values, but here we only need the model
         model, _, _, _ = load_checkpoint(model, None, CHECKPOINT_PATH)
-        model.eval() # Imposta il modello in modalità valutazione
-        print(f"Modello caricato con successo da {CHECKPOINT_PATH}")
+        model.eval() # Set the model to evaluation mode (disables dropout, batch normalization updates)
+        print(f"Model successfully loaded from {CHECKPOINT_PATH}")
     else:
-        print(f"Errore: Nessun checkpoint del modello trovato a {CHECKPOINT_PATH}.")
-        print("Assicurati di aver addestrato il modello eseguendo main.py prima.")
+        print(f"Error: No model checkpoint found at {CHECKPOINT_PATH}.")
+        print("Please ensure you have trained the model by running main.py first.")
         return
 
-    # 3. Caricamento del classificatore di volti Haar Cascade
+    # 3. Load the Haar Cascade face classifier
     face_cascade = cv2.CascadeClassifier(FACE_CASCADE_PATH)
     if face_cascade.empty():
-        print(f"Errore: Impossibile caricare il classificatore di volti da {FACE_CASCADE_PATH}.")
-        print("Assicurati che il file 'haarcascade_frontalface_default.xml' esista.")
+        print(f"Error: Unable to load face classifier from {FACE_CASCADE_PATH}.")
+        print("Please ensure the file 'haarcascade_frontalface_default.xml' exists.")
         return
 
-    # 4. Inizializzazione della webcam
-    cap = cv2.VideoCapture(0) # 0 indica la webcam predefinita
+    # 4. Initialize the webcam
+    cap = cv2.VideoCapture(0) # 0 indicates the default webcam
     if not cap.isOpened():
-        print("Errore: Impossibile aprire la webcam.")
+        print("Error: Unable to open webcam.")
         return
 
-    print("Inizio inferenza in tempo reale. Premi 'q' per uscire.")
+    print("Starting real-time inference. Press 'q' to exit.")
 
     while True:
-        ret, frame = cap.read() # Legge un frame dalla webcam
+        ret, frame = cap.read() # Read a frame from the webcam
         if not ret:
-            print("Errore: Impossibile leggere il frame.")
+            print("Error: Unable to read frame.")
             break
 
-        # Converte il frame in scala di grigi per il rilevamento dei volti e l'input del modello
+        # Convert the frame to grayscale for face detection and model input
         gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        # Rileva i volti nel frame
-        # scaleFactor: quanto l'immagine viene ridotta ad ogni scala di immagine.
-        # minNeighbors: quanti vicini ogni rettangolo candidato dovrebbe avere per ritenerlo un volto.
+        # Detect faces in the frame
+        # scaleFactor: How much the image is reduced at each image scale.
+        # minNeighbors: How many neighbors each candidate rectangle should have to retain it as a face.
+        # minSize: Minimum possible object size. Objects smaller than this are ignored.
         faces = face_cascade.detectMultiScale(gray_frame, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
 
         for (x, y, w, h) in faces:
-            # Disegna un rettangolo attorno al volto rilevato
-            cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2) # Colore blu, spessore 2
+            # Draw a rectangle around the detected face
+            cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2) # Blue color, thickness 2
 
-            # Estrai la regione del volto (ROI)
+            # Extract the Region of Interest (ROI) for the face
             face_roi = gray_frame[y:y+h, x:x+w]
 
-            # Pre-elabora il volto per l'input del modello
+            # Pre-process the face for model input
             preprocessed_face = preprocess_face(face_roi).to(device)
 
-            # Esegui l'inferenza (previsione dell'emozione)
-            with torch.no_grad(): # Disabilita il calcolo dei gradienti
+            # Perform inference (emotion prediction)
+            with torch.no_grad(): # Disable gradient calculation (as we are only inferring)
                 outputs = model(preprocessed_face)
-                # Applica softmax per ottenere le probabilità
+                # Apply softmax to get probabilities
                 probabilities = F.softmax(outputs, dim=1)
-                # Ottieni la classe con la probabilità più alta
+                # Get the class with the highest probability
                 _, predicted_idx = torch.max(probabilities, 1)
-                predicted_emotion = EMOTION_LABELS[predicted_idx.item()]
-                confidence = probabilities[0, predicted_idx.item()].item() * 100 # Confidenza in percentuale
+                predicted_emotion = EMOTION_LABELS[predicted_idx.item()] # Get the emotion name
+                confidence = probabilities[0, predicted_idx.item()].item() * 100 # Confidence as a percentage
 
-            # Visualizza l'emozione e la confidenza sul frame
+            # Display the emotion and confidence on the frame
             text = f"{predicted_emotion} ({confidence:.2f}%)"
-            # Posiziona il testo sopra il rettangolo del volto
-            cv2.putText(frame, text, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2, cv2.LINE_AA) # Colore verde
+            # Position the text above the face rectangle
+            cv2.putText(frame, text, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2, cv2.LINE_AA) # Green color
 
-        # Mostra il frame risultante
-        cv2.imshow('Riconoscimento Emozioni', frame)
+        # Show the resulting frame
+        cv2.imshow('Emotion Recognition', frame)
 
-        # Esci premendo 'q'
+        # Exit by pressing 'q'
         key = cv2.waitKey(1) & 0xFF
         if key == ord('q'):
             break
-        elif key == ord('a') or key == ord('l'): 
-            # Save the frame
+        elif key == ord('a') or key == ord('l'):
+            # Save the current frame
             cv2.imwrite(img_path, frame)
             print(f"Saved {img_path}")
 
-            # Get the prediction in text format
-            if key == ord('a'):
+            # Get the prediction in text format based on the pressed key
+            if key == ord('a'): # If 'a' is pressed, get Action Unit prediction
                 text = get_aus_text(img_path, exe_path, output_dir)
-            else:
+            else: # If 'l' is pressed, get Landmark prediction
                 text = get_landmarks_text(img_path)
-            
-            # Show the frozen frame with prediction
-            display_frame = frame.copy()
+
+            # Show the frozen frame with the prediction
+            display_frame = frame.copy() # Create a copy to avoid modifying the live frame
             cv2.putText(display_frame, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                        1, (0, 255, 0), 2, cv2.LINE_AA)
-            cv2.imshow("Result", display_frame)
+                        1, (0, 255, 0), 2, cv2.LINE_AA) # Display prediction text
+            cv2.imshow("Result", display_frame) # Show the result in a new window
             print("Showing result... Press any key to continue.")
-            cv2.waitKey(0) 
+            cv2.waitKey(0) # Wait indefinitely until any key is pressed
             cv2.destroyWindow("Result")  # Close only the result window
 
-    # Rilascia la webcam e distruggi tutte le finestre di OpenCV
+    # Release the webcam and destroy all OpenCV windows
     cap.release()
     cv2.destroyAllWindows()
-    clean_up(img_path)
+    clean_up(img_path) # Clean up temporary files
 
 if __name__ == '__main__':
-    main()
+    main() # Run the main function when the script is executed
