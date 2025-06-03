@@ -12,7 +12,7 @@ import numpy as np # For numerical operations
 import pandas as pd
 import os
 import subprocess
-from moviepy.editor import ImageClip # Correct import for ImageClip
+from moviepy import ImageClip # Correct import for ImageClip
 from genuineness_detection.src.predictor import predict_au, predict_landmark
 from genuineness_detection.dataset_src.create_landmarks_dataset import get_landmarks
 
